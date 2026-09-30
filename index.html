@@ -265,7 +265,7 @@
         <div class="card-body">
           <div class="row g-2">
             <div class="col-md-9">
-              <input type="text" id="buscarValor" class="form-control" placeholder="Digite cédula, nombre, grado, dependencia o PERT (AP / PM)" onkeydown="if(event.key === 'Enter'){ buscarFuncionario(); }">
+              <input type="text" id="buscarValor" class="form-control" placeholder="Digite cédula, nombre, grado, dependencia o PERT (AP/PM)" onkeydown="if(event.key === 'Enter'){ buscarFuncionario(); }">
             </div>
             <div class="col-md-3">
               <button type="button" class="btn btn-pol w-100" onclick="buscarFuncionario()">🔎 Buscar</button>
@@ -394,7 +394,7 @@
     <!-- GESTIÓN BASE UBL_JESEP -->
     <section id="seccionUbl" class="section">
       <div class="card">
-        <div class="card-header">⚙️️ Gestión de Funcionarios - LISTADO_BASE</div>
+        <div class="card-header">⚙️ Gestión de Funcionarios - LISTADO_BASE</div>
         <div class="card-body">
           
           <ul class="nav nav-tabs mb-3" id="ublTabs" role="tablist">
@@ -917,25 +917,18 @@ function ejecutarGuardadoNovedad() {
   const nombreFuncionario = funcionarioSeleccionado.funcionario || funcionarioSeleccionado.FUNCIONARIO || '';
 
   const tipo = document.getElementById('tipoNovedad').value;
-  let nombreNovedad = document.getElementById('novedadNombre').value.trim();
-  let descripcionExtra = '';
+  const textoDetalleDigitado = document.getElementById('novedadNombre').value.trim();
+  let textoEspecialExtra = '';
 
   const user = String(usuarioSesion || '').toUpperCase();
   if (user === 'SGSST_JESEP' || tipo === 'EXCUSAS MEDICAS' || tipo === 'RESTRICCIONES MEDICAS' || tipo === 'LICIENCIA DE MATERNIDAD') {
     const reub = document.getElementById('reubicacionLaboralSelect').value;
-    descripcionExtra = 'Reubicación Laboral: ' + reub;
-  } else if (tipo === 'CAMBIO DE TURNO') {
-    nombreNovedad = 'CAMBIO DE TURNO';
+    textoEspecialExtra = 'Reubicación Laboral: ' + reub;
   } else if (tipo === 'HORARIO FLEXIBLE') {
-    nombreNovedad = 'HORARIO FLEXIBLE';
     const hIni = document.getElementById('hfHoraInicio').value;
     const hFin = document.getElementById('hfHoraFin').value;
     const diasSem = document.getElementById('hfDiasSemana').value;
-    descripcionExtra = 'Horario: ' + hIni + ' a ' + hFin + ' | Días: ' + diasSem;
-  }
-
-  if (!nombreNovedad) {
-    nombreNovedad = tipo;
+    textoEspecialExtra = 'Horario: ' + hIni + ' a ' + hFin + ' | Días: ' + diasSem;
   }
 
   const datos = {
@@ -943,9 +936,9 @@ function ejecutarGuardadoNovedad() {
     cedula: cedula,
     grado: grado,
     funcionario: nombreFuncionario,
-    novedad: tipo,
-    nombreNovedad: nombreNovedad,
-    descripcion: descripcionExtra,
+    novedad: tipo,                            // Tipo seleccionado -> va a Columna E
+    nombreNovedad: textoDetalleDigitado,      // Novedad / Detalle digitado
+    descripcion: textoEspecialExtra,          // Reubicación Laboral -> va a unirse con comillas en Columna F
     nuevoTurno: document.getElementById('nuevoTurnoSelect').value,
     dias: document.getElementById('novedadDias').value,
     fechaInicial: document.getElementById('fechaInicial').value,

@@ -255,7 +255,7 @@
       <button type="button" id="menuConsulta" onclick="mostrarSeccion('consulta')">🔎 Consulta</button>
       <button type="button" id="menuNovedad" onclick="mostrarSeccion('novedad')">📝 Registrar Novedad</button>
       <button type="button" id="menuReportes" onclick="mostrarSeccion('reportes')">📄 Reportes</button>
-      <button type="button" id="menuUblBoton" style="display:none;" onclick="mostrarSeccion('ubl')">⚙️ Gestión Base (UBL)</button>
+      <button type="button" id="menuUblBoton" style="display:none;" onclick="mostrarSeccion('ubl')">⚙️ Gestión Base / Novedades (UBL)</button>
     </nav>
 
     <!-- CONSULTA FUNCIONARIO -->
@@ -394,7 +394,7 @@
     <!-- GESTIÓN BASE UBL_JESEP -->
     <section id="seccionUbl" class="section">
       <div class="card">
-        <div class="card-header">⚙️ Gestión de Funcionarios - LISTADO_BASE</div>
+        <div class="card-header">⚙️ Gestión UBL - Funcionarios y Novedades</div>
         <div class="card-body">
           
           <ul class="nav nav-tabs mb-3" id="ublTabs" role="tablist">
@@ -403,6 +403,9 @@
             </li>
             <li class="nav-item">
               <button class="nav-link" id="tab-eliminar" data-bs-toggle="tab" data-bs-target="#panel-eliminar" type="button" role="tab">❌ Eliminar Funcionario</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="tab-eliminar-nov" data-bs-toggle="tab" data-bs-target="#panel-eliminar-nov" type="button" role="tab">🗑️ Eliminar Novedad por Fila</button>
             </li>
           </ul>
 
@@ -518,7 +521,7 @@
               </form>
             </div>
 
-            <!-- ELIMINAR -->
+            <!-- ELIMINAR FUNCIONARIO -->
             <div class="tab-pane fade" id="panel-eliminar" role="tabpanel">
               <div class="row g-2 align-items-end">
                 <div class="col-md-6">
@@ -530,6 +533,20 @@
                 </div>
               </div>
             </div>
+
+            <!-- ELIMINAR NOVEDAD POR FILA -->
+            <div class="tab-pane fade" id="panel-eliminar-nov" role="tabpanel">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-6">
+                  <label class="form-label">Número de Fila de la Novedad (Hoja NOVEDADES)</label>
+                  <input type="number" id="ublFilaNovedadEliminar" class="form-control" placeholder="Ej: 5">
+                </div>
+                <div class="col-md-3">
+                  <button type="button" class="btn btn-warning w-100" onclick="ejecutarEliminacionNovedadPorFila()">🗑️ Eliminar Novedad</button>
+                </div>
+              </div>
+            </div>
+
           </div>
 
         </div>
@@ -882,6 +899,8 @@ function cargarHistorial(cedula) {
   const contenedor = document.getElementById('historialFuncionario');
   contenedor.innerHTML = '<div class="loading">🔄 Consultando historial...</div>';
 
+  const esUblOAdmin = (String(usuarioSesion || '').toUpperCase() === 'UBL_JESEP') || rolSesion === 'ADMINISTRADOR';
+
   google.script.run
     .withSuccessHandler(function(respuesta) {
       if (!respuesta || respuesta.estado !== true) {
@@ -895,14 +914,39 @@ function cargarHistorial(cedula) {
         return;
       }
 
-      let html = '<div class="card"><div class="card-header">Historial de novedades</div><div class="card-body"><div class="table-wrapper"><table class="table table-bordered"><thead><tr><th>GR</th><th>NOVEDAD</th><th>DÍAS</th><th>FECHA INICIAL</th><th>FECHA PRESENTACIÓN</th></tr></thead><tbody>';
+      let html = '<div class="card"><div class="card-header">Historial de novedades</div><div class="card-body"><div class="table-wrapper"><table class="table table-bordered"><thead><tr><th>GR</th><th>NOVEDAD</th><th>DÍAS</th><th>FECHA INICIAL</th><th>FECHA PRESENTACIÓN</th>';
+      if (esUblOAdmin) {
+        html += '<th class="text-center">ACCIÓN</th>';
+      }
+      html += '</tr></thead><tbody>';
+
       historial.forEach(function(n) {
-        html += '<tr><td>' + esc(n.GR) + '</td><td>' + esc(n.NOVEDAD) + '</td><td>' + esc(n.Dias) + '</td><td>' + esc(n['Fecha INICIAL']) + '</td><td>' + esc(n['Fecha PRESENTACION']) + '</td></tr>';
+        html += '<tr><td>' + esc(n.GR) + '</td><td>' + esc(n.NOVEDAD) + '</td><td>' + esc(n.Dias) + '</td><td>' + esc(n['Fecha INICIAL']) + '</td><td>' + esc(n['Fecha PRESENTACION']) + '</td>';
+        if (esUblOAdmin) {
+          html += '<td class="text-center"><button type="button" class="btn btn-sm btn-danger" onclick="eliminarNovedadDirecta(' + n.fila + ', \'' + cedula + '\')">🗑️ Eliminar</button></td>';
+        }
+        html += '</tr>';
       });
+
       html += '</tbody></table></div></div></div>';
       contenedor.innerHTML = html;
     })
     .obtenerHistorialFuncionario(tokenSesion, cedula);
+}
+
+function eliminarNovedadDirecta(numFila, cedula) {
+  if (!confirm('¿Está seguro de eliminar esta novedad registrada en la fila ' + numFila + '?')) return;
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res && res.estado) {
+        mostrarToast(res.mensaje);
+        cargarHistorial(cedula);
+      } else {
+        mostrarToast(res ? res.mensaje : 'Error al eliminar la novedad.', 'error');
+      }
+    })
+    .eliminarNovedadUBL(tokenSesion, numFila);
 }
 
 function ejecutarGuardadoNovedad() {
@@ -936,9 +980,9 @@ function ejecutarGuardadoNovedad() {
     cedula: cedula,
     grado: grado,
     funcionario: nombreFuncionario,
-    novedad: tipo,                            // Tipo seleccionado -> va a Columna E
-    nombreNovedad: textoDetalleDigitado,      // Novedad / Detalle digitado
-    descripcion: textoEspecialExtra,          // Reubicación Laboral -> va a unirse con comillas en Columna F
+    novedad: tipo,
+    nombreNovedad: textoDetalleDigitado,
+    descripcion: textoEspecialExtra,
     nuevoTurno: document.getElementById('nuevoTurnoSelect').value,
     dias: document.getElementById('novedadDias').value,
     fechaInicial: document.getElementById('fechaInicial').value,
@@ -1051,6 +1095,25 @@ function eliminarFuncionarioUBL() {
       }
     })
     .eliminarFuncionarioUBL(tokenSesion, cc);
+}
+
+function ejecutarEliminacionNovedadPorFila() {
+  if (!verificarSesionLocal()) return;
+  const numFila = document.getElementById('ublFilaNovedadEliminar').value.trim();
+  if (!numFila) { mostrarToast('Ingrese el número de fila.', 'error'); return; }
+
+  if (!confirm('¿Está seguro de eliminar la fila ' + numFila + ' de la hoja NOVEDADES?')) return;
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res && res.estado) {
+        mostrarToast(res.mensaje);
+        document.getElementById('ublFilaNovedadEliminar').value = '';
+      } else {
+        mostrarToast(res ? res.mensaje : 'Error al eliminar la novedad.', 'error');
+      }
+    })
+    .eliminarNovedadUBL(tokenSesion, numFila);
 }
 </script>
 </body>

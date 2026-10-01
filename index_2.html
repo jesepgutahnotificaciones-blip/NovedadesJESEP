@@ -10,7 +10,7 @@
   <style>
     :root {
       --verde: #272930;
-      --verde-oscuro: ##050c29;
+      --verde-oscuro: #050c29;
       --azul: #050c29;
       --dorado: #C9A227;
       --gris: #f4f6f7;
@@ -542,7 +542,7 @@
                   <input type="number" id="ublFilaNovedadEliminar" class="form-control" placeholder="Ej: 5">
                 </div>
                 <div class="col-md-3">
-                  <button type="button" class="btn btn-warning w-100" onclick="ejecutarEliminacionNovedadPorFila()">🗑️ Eliminar Novedad</button>
+                  <button type="button" class="btn btn-warning w-100" onclick="ejecutarEliminacionNovedadPorFila()">🗑️️ Eliminar Novedad</button>
                 </div>
               </div>
             </div>
@@ -560,7 +560,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const APPS_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbz7bmtdDdFyoR7H7kJP-B_nTQfJNCzesL3lbWicAfd-eGuN0bvvHLAYknU9ncszm-BG/exec';
+const APPS_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbzdNdWSajyRBiMdULGbXNizO6ST37SV7QY5mYuBxCPFCzDU_UdoE7n7OVZELpfArhfS/exec';
 
 (function configurarPuenteAPI() {
   const TIMEOUT_MS = 90000;
@@ -845,7 +845,7 @@ function buscarFuncionario() {
       let html = '<div class="card"><div class="card-header">Funcionarios encontrados (' + datos.length + ')</div><div class="card-body">';
       datos.forEach(function(f) {
         html += '<div class="employee-card">' +
-          '<div class="employee-name">' + esc(f.funcionario || f.FUNCIONARIO || '') + '</div>' +
+          '<div class="employee-name">' + esc(f.funcionario || f.FUNCIONARIO || f.apellidosYNombres || '') + '</div>' +
           '<div class="employee-meta">CC: ' + esc(f.cedula || f.CEDULA || '') + ' | GR: ' + esc(f.grado || f.GR || '') + ' | DEP: ' + esc(f.dependencia || f.DEPENDENCIA || '') + ' | PERT: ' + esc(f.pert || f.PERT || '') + ' | Turno: ' + esc(f.turno || f.TURNO || '') + '</div>' +
           '<div class="mt-2"><button type="button" class="btn btn-sm btn-pol" onclick=\'seleccionarFuncionario(' + JSON.stringify(f) + ')\'>Seleccionar</button></div>' +
           '</div>';
@@ -863,7 +863,7 @@ function seleccionarFuncionario(funcionario) {
   funcionarioSeleccionado = funcionario;
   const cedula = funcionario.cedula || funcionario.CEDULA || '';
   document.getElementById('novedadCedula').value = cedula;
-  document.getElementById('novedadFuncionario').value = funcionario.funcionario || funcionario.FUNCIONARIO || '';
+  document.getElementById('novedadFuncionario').value = funcionario.funcionario || funcionario.FUNCIONARIO || funcionario.apellidosYNombres || '';
 
   cargarFicha(cedula);
   mostrarSeccion('novedad');
@@ -882,9 +882,17 @@ function cargarFicha(cedula) {
       }
 
       const f = respuesta.funcionario || respuesta.datos || {};
+      
+      // Actualizamos la variable global con los campos completos recibidos de la ficha
+      if (funcionarioSeleccionado) {
+        funcionarioSeleccionado.nivel = f.nivel || f.NIV || funcionarioSeleccionado.nivel;
+        funcionarioSeleccionado.turno = f.turno || f.TURNO || funcionarioSeleccionado.turno;
+        funcionarioSeleccionado.funcionario = f.funcionario || f.FUNCIONARIO || f.apellidosYNombres || funcionarioSeleccionado.funcionario;
+      }
+
       let html = '<div class="card"><div class="card-header">Ficha del funcionario</div><div class="card-body">' +
         '<div class="employee-card">' +
-        '<div class="employee-name">' + esc(f.funcionario || f.FUNCIONARIO || '') + '</div>' +
+        '<div class="employee-name">' + esc(f.funcionario || f.FUNCIONARIO || f.apellidosYNombres || '') + '</div>' +
         '<div class="employee-meta">Cédula: ' + esc(f.cedula || f.CEDULA || '') + ' | Nivel: ' + esc(f.nivel || f.NIV || '') + ' | Grado: ' + esc(f.grado || f.GR || '') + ' | PERT: ' + esc(f.pert || f.PERT || '') + ' | Turno: ' + esc(f.turno || f.TURNO || '') + '</div>' +
         '<div class="mt-2">Dependencia: <strong>' + esc(f.dependencia || f.DEPENDENCIA || '') + '</strong></div>' +
         '</div></div></div>';
@@ -958,7 +966,9 @@ function ejecutarGuardadoNovedad() {
 
   const cedula = funcionarioSeleccionado.cedula || funcionarioSeleccionado.CEDULA || document.getElementById('novedadCedula').value;
   const grado = funcionarioSeleccionado.grado || funcionarioSeleccionado.GR || '';
-  const nombreFuncionario = funcionarioSeleccionado.funcionario || funcionarioSeleccionado.FUNCIONARIO || '';
+  const nombreFuncionario = funcionarioSeleccionado.funcionario || funcionarioSeleccionado.FUNCIONARIO || funcionarioSeleccionado.apellidosYNombres || '';
+  const nivelFuncionario = funcionarioSeleccionado.nivel || funcionarioSeleccionado.NIV || '';
+  const turnoFuncionario = funcionarioSeleccionado.turno || funcionarioSeleccionado.TURNO || '';
 
   const tipo = document.getElementById('tipoNovedad').value;
   const textoDetalleDigitado = document.getElementById('novedadNombre').value.trim();
@@ -980,6 +990,8 @@ function ejecutarGuardadoNovedad() {
     cedula: cedula,
     grado: grado,
     funcionario: nombreFuncionario,
+    nivel: nivelFuncionario,
+    turno: turnoFuncionario,
     novedad: tipo,
     nombreNovedad: textoDetalleDigitado,
     descripcion: textoEspecialExtra,
